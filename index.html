@@ -6,7 +6,7 @@
     <title>Pixel Fight - ZORA Edition</title>
     <script src="https://unpkg.com/@farcade/game-sdk@latest/dist/index.min.js"></script>
     <!-- ZORA and Web3 Dependencies -->
-    <script src="https://unpkg.com/viem@2.0.0/dist/umd/index.js"></script>
+    <script src="https://unpkg.com/viem@2.0.0/dist/index.umd.js"></script>
     <script src="https://unpkg.com/@zoralabs/coins-sdk@0.0.3/dist/index.umd.js"></script>
     <style>
       * {
@@ -987,7 +987,7 @@
           // Initialize viem clients
           statusDiv.textContent = "Initializing wallet...";
           
-          const { createWalletClient, createPublicClient, http, parseEther } = viem;
+          const { createWalletClient, createPublicClient, http, parseEther } = window.viem;
           
           zora.publicClient = createPublicClient({
             chain: {

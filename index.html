@@ -988,7 +988,7 @@
           statusDiv.textContent = "Initializing wallet...";
           
           // Get viem functions from the global object
-          const { createWalletClient, createPublicClient, http, custom } = window.viem;
+          const { createWalletClient, createPublicClient, http, custom } = viem;
           
           zora.publicClient = createPublicClient({
             chain: {

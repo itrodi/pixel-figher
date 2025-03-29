@@ -6,8 +6,15 @@
     <title>Pixel Fight - ZORA Edition</title>
     <script src="https://unpkg.com/@farcade/game-sdk@latest/dist/index.min.js"></script>
     <!-- ZORA and Web3 Dependencies -->
-    <script src="https://unpkg.com/viem@2.0.0/dist/index.umd.js"></script>
-    <script src="https://unpkg.com/@zoralabs/coins-sdk@0.0.3/dist/index.umd.js"></script>
+    <script type="module">
+      // Import libraries from ESM CDN
+      import { createWalletClient, createPublicClient, http, parseEther } from 'https://esm.sh/viem@2.0.0';
+      import * as zoraSdk from 'https://esm.sh/@zoralabs/coins-sdk@0.0.3';
+      
+      // Make them available to the global scope
+      window.viemExports = { createWalletClient, createPublicClient, http, parseEther };
+      window.zoraSdk = zoraSdk;
+    </script>
     <style>
       * {
         margin: 0;
@@ -844,6 +851,7 @@
           bomb: new Audio("https://assets.codepen.io/21542/explosion.wav"),
           upgrade: new Audio("https://assets.codepen.io/21542/sfx_sounds_powerup4.wav"),
           token: new Audio("https://assets.codepen.io/21542/coin.wav"),
+          move: new Audio("https://assets.codepen.io/21542/sfx_movement_jump9.wav"),
         },
         play: function (soundName) {
           if (this.isMuted) return;
@@ -967,6 +975,7 @@
                     params: [{
                       chainId: `0x${zora.chainConfig.id.toString(16)}`,
                       chainName: zora.chainConfig.name,
+                      // Continue the ZORA wallet connection function
                       rpcUrls: [zora.chainConfig.rpcUrl],
                       nativeCurrency: {
                         name: 'Ether',
@@ -987,7 +996,8 @@
           // Initialize viem clients
           statusDiv.textContent = "Initializing wallet...";
           
-          const { createWalletClient, createPublicClient, http, parseEther } = window.viem;
+          // Use the global imports from module script
+          const { createWalletClient, createPublicClient, http, parseEther } = window.viemExports;
           
           zora.publicClient = createPublicClient({
             chain: {
@@ -1091,8 +1101,7 @@
             
             // Verify it exists
             try {
-              const zoraSdk = window.zoralabsCoinsSdk;
-              const coinDetails = await zoraSdk.getCoin({ 
+              const coinDetails = await window.zoraSdk.getCoin({ 
                 address: coinAddress,
                 chain: zora.chainConfig.id
               });
@@ -1152,8 +1161,7 @@
           document.getElementById("transaction-status").textContent = "Creating game token...";
           document.getElementById("modal-actions").style.display = "none";
           
-          const zoraSdk = window.zoralabsCoinsSdk;
-          const { parseEther } = viem;
+          const { parseEther } = window.viemExports;
           
           // Create the coin params
           const coinParams = {
@@ -1165,7 +1173,7 @@
           };
           
           // Create config for transaction
-          const callParams = zoraSdk.createCoinCall(coinParams);
+          const callParams = window.zoraSdk.createCoinCall(coinParams);
           
           // Simulate the transaction to catch errors early
           try {
@@ -1184,7 +1192,7 @@
           const receipt = await zora.publicClient.waitForTransactionReceipt({ hash: txHash });
           
           // Get the coin address from the logs
-          const creationInfo = zoraSdk.getCoinCreateFromLogs(receipt.logs);
+          const creationInfo = window.zoraSdk.getCoinCreateFromLogs(receipt.logs);
           if (!creationInfo || !creationInfo.coin) {
             throw new Error("Failed to extract coin address from transaction");
           }
@@ -1349,7 +1357,7 @@
         showNotification("ALLY ADDED!");
       }
       
-      async function claimTokensToWallet() {
+     async function claimTokensToWallet() {
         if (!zora.isConnected || !zora.initialized || game.pendingTokens < config.minTokensToClaim) return;
         
         if (zora.claimingTokens) return;
@@ -1661,7 +1669,6 @@
         game.state = "playing";
         gameLoop();
       }
-
       function resetGameState() {
         game.score = 0;
         game.distance = 0;
@@ -1833,8 +1840,7 @@
         const x = game.lanes[laneIndex] - 10; // Center in lane
         const y = -30; // Start off-screen
 
-        const enemy = {
-          x: x,
+        const enemy = {x: x,
           y: y,
           width: 20,
           height: 20,
@@ -2203,7 +2209,7 @@
         // Request next frame
         game.animationFrameId = requestAnimationFrame(gameLoop);
       }
-
+      
       function updateEnemies() {
         // Reset flag, we'll set it if we find live enemies
         game.hasEnemies = game.enemies.length > 0;
@@ -2586,7 +2592,7 @@
           document.getElementById("shield").style.display = "none";
         }, config.shieldDuration);
       }
-
+      
       function updateParticles() {
         for (let i = game.particles.length - 1; i >= 0; i--) {
           const particle = game.particles[i];
@@ -2652,8 +2658,9 @@
             ally.x = game.player.x + game.player.width + 10 + Math.floor(allyPosition / 2) * 15;
             ally.y = game.player.y + 10 + Math.floor(allyPosition / 2) * 20;
           } else {
+           // Continue the updateAllies function
             // Left side
-            ally.x = game.player.x - 10 - ally.width - Math.floor(allyPosition / 2) * 15;
+            ally.x = game.player.x - 10 - 16 - Math.floor(allyPosition / 2) * 15;
             ally.y = game.player.y + 10 + Math.floor(allyPosition / 2) * 20;
           }
 
@@ -2661,106 +2668,93 @@
           ally.element.style.left = `${ally.x}px`;
           ally.element.style.top = `${ally.y}px`;
 
-          // Shoot occasionally if enemies exist
-          if (game.hasEnemies) {
+          // Ally shooting logic
+          if (game.enemies.length > 0) {
             ally.shootTimer++;
 
-            if (ally.shootTimer > 90) {
-              // Less frequent than player
-              // Create ally bullet
-              createAllyBullet(ally);
-              ally.shootTimer = 0;
+            // Allies shoot slightly slower than player
+            if (ally.shootTimer > 70) {
+              // Find closest enemy in the same lane or adjacent lanes
+              let targetEnemy = null;
+              let closestDistance = Infinity;
+
+              for (let j = 0; j < game.enemies.length; j++) {
+                const enemy = game.enemies[j];
+                
+                // Only target enemies in same lane or adjacent lanes
+                if (Math.abs(enemy.lane - game.player.lane) <= 1) {
+                  const distance = enemy.y - ally.y;
+                  
+                  // Only target enemies ahead of ally and closer than current target
+                  if (distance < closestDistance && distance > 0) {
+                    closestDistance = distance;
+                    targetEnemy = enemy;
+                  }
+                }
+              }
+
+              // If we found a target, shoot
+              if (targetEnemy) {
+                const bullet = {
+                  x: ally.x + ally.width / 2 - 2,
+                  y: ally.y - 10,
+                  width: 4,
+                  height: 10,
+                  velocityY: -config.bulletSpeed * 0.8, // Slightly slower than player bullets
+                  element: document.createElement("div"),
+                  damage: 1, // Allies do less damage than player
+                };
+
+                bullet.element.className = "bullet";
+                bullet.element.style.left = `${bullet.x}px`;
+                bullet.element.style.top = `${bullet.y}px`;
+
+                const gameScreen = document.getElementById("game-screen");
+                gameScreen.appendChild(bullet.element);
+                game.bullets.push(bullet);
+
+                // Reset shoot timer
+                ally.shootTimer = 0;
+              }
             }
           }
         }
       }
 
-      function createAllyBullet(ally) {
-        const gameScreen = document.getElementById("game-screen");
-
-        const bullet = {
-          x: ally.x + ally.width / 2 - 2,
-          y: ally.y - 10,
-          width: 4,
-          height: 10,
-          velocityY: -config.bulletSpeed,
-          element: document.createElement("div"),
-          damage: 1, // Allies always do base damage
-        };
-
-        bullet.element.className = "bullet";
-        bullet.element.style.backgroundColor = "#88ff88"; // Different color for ally bullets
-        bullet.element.style.left = `${bullet.x}px`;
-        bullet.element.style.top = `${bullet.y}px`;
-
-        gameScreen.appendChild(bullet.element);
-        game.bullets.push(bullet);
-      }
-
       function takeDamage(amount) {
         if (game.player.invincible) return;
 
+        // Reduce health
         game.health -= amount;
         updateHealthBar();
 
-        // Visual and sound effects
+        // Sound effect
         audio.play("playerHit");
         triggerHapticFeedback();
 
+        // Visual effects
         const gameScreen = document.getElementById("game-screen");
         gameScreen.classList.add("flash");
         setTimeout(() => {
           gameScreen.classList.remove("flash");
         }, 200);
 
+        // Check if player is defeated
+        if (game.health <= 0) {
+          endGame();
+          return;
+        }
+
         // Make player briefly invincible
         game.player.invincible = true;
         game.player.element.style.opacity = 0.5;
 
         setTimeout(() => {
-          game.player.invincible = false;
-          game.player.element.style.opacity = 1;
+          if (game.state === "playing") {
+            game.player.invincible = false;
+            game.player.element.style.opacity = 1;
+          }
         }, config.invincibilityTime);
-
-        // Check if player has lost all health
-        if (game.health <= 0) {
-          endGame();
-        }
-      }
-
-      function updateHealthBar() {
-        const healthBar = document.getElementById("health-bar");
-        const healthPercent = (game.health / config.playerHealth) * 100;
-        healthBar.style.width = `${healthPercent}%`;
-
-        // Change color based on health remaining
-      if (healthPercent > 60) {
-          healthBar.style.backgroundColor = "#00ff00"; // Green
-        } else if (healthPercent > 30) {
-          healthBar.style.backgroundColor = "#ffff00"; // Yellow
-        } else {
-          healthBar.style.backgroundColor = "#ff0000"; // Red
-        }
-      }
-
-      function updateWeaponDisplay() {
-        document.getElementById("weapon-container").textContent = `WEAPON: LV.${game.player.weaponLevel}`;
-      }
-
-      function updateBombDisplay() {
-        document.getElementById("bomb-container").textContent = `BOMBS: ${game.player.bombCount}`;
-      }
-
-      function updateScoreDisplay() {
-        document.getElementById("score-container").textContent = `SCORE: ${Math.floor(game.score)}`;
-      }
-
-      function updateWaveDisplay() {
-        document.getElementById("wave-container").textContent = `WAVE: ${game.wave}`;
-      }
-
-      function updateTokenDisplay() {
-        document.getElementById("token-container").textContent = `TOKENS: ${game.tokens}`;
       }
 
       function checkCollision(obj1, obj2) {
@@ -2772,67 +2766,87 @@
         );
       }
 
+      function updateScoreDisplay() {
+        document.getElementById("score-container").textContent = `SCORE: ${Math.floor(game.score)}`;
+      }
+
+      function updateHealthBar() {
+        const healthPercent = (game.health / config.playerHealth) * 100;
+        document.getElementById("health-bar").style.width = `${healthPercent}%`;
+
+        // Change color based on health level
+        const healthBar = document.getElementById("health-bar");
+        if (healthPercent > 60) {
+          healthBar.style.backgroundColor = "#00ff00";
+        } else if (healthPercent > 30) {
+          healthBar.style.backgroundColor = "#ffff00";
+        } else {
+          healthBar.style.backgroundColor = "#ff0000";
+        }
+      }
+
+      function updateWaveDisplay() {
+        document.getElementById("wave-container").textContent = `WAVE: ${game.wave}`;
+      }
+
+      function updateWeaponDisplay() {
+        document.getElementById("weapon-container").textContent = `WEAPON: LV.${game.player.weaponLevel}`;
+      }
+
+      function updateBombDisplay() {
+        document.getElementById("bomb-container").textContent = `BOMBS: ${game.player.bombCount}`;
+      }
+
+      function updateTokenDisplay() {
+        document.getElementById("token-container").textContent = `TOKENS: ${game.tokens}`;
+      }
+
       function endGame() {
         game.state = "gameOver";
         cancelAnimationFrame(game.animationFrameId);
 
-        // Display game over screen
-        const gameOverScreen = document.getElementById("game-over-screen");
+        // Update final stats
         document.getElementById("final-score").textContent = `FINAL SCORE: ${Math.floor(game.score)}`;
         document.getElementById("enemies-defeated").textContent = `ENEMIES DEFEATED: ${game.enemiesDefeated}`;
         document.getElementById("wave-reached").textContent = `WAVE REACHED: ${game.wave}`;
         
-        // Show token earnings if wallet is connected
-        if (zora.isConnected && zora.initialized && game.pendingTokens > 0) {
+        // Show tokens earned if connected to wallet
+        if (zora.isConnected && zora.initialized) {
           document.getElementById("tokens-earned").textContent = `TOKENS EARNED: ${game.pendingTokens}`;
-          document.getElementById("tokens-earned").style.display = "block";
-          
-          // Show claim button if enough tokens to claim
+          // Only show claim button if there are tokens to claim
           if (game.pendingTokens >= config.minTokensToClaim) {
             document.getElementById("claim-tokens").style.display = "block";
           } else {
-            // Not enough tokens to claim
-            document.getElementById("claim-tokens").style.display = "none";
+            document.getElementById("tokens-earned").textContent += ` (Need ${config.minTokensToClaim} to claim)`;
           }
         } else {
-          document.getElementById("tokens-earned").style.display = "none";
-          document.getElementById("claim-tokens").style.display = "none";
+          document.getElementById("tokens-earned").textContent = 'Connect wallet to earn tokens';
         }
-        
-        gameOverScreen.style.display = "flex";
 
+        // Show game over screen
+        document.getElementById("game-over-screen").style.display = "flex";
+
+        // Play game over sound
         audio.play("gameOver");
+        triggerHapticFeedback();
 
-        // Send score to Farcade
+        // Report score to Farcade if initialized
         if (game.farcadeInitialized && window.FarcadeSDK) {
-          try {
-            window.FarcadeSDK.singlePlayer.actions.gameOver({ score: Math.floor(game.score) });
-          } catch (e) {
-            console.warn("Farcade gameOver failed:", e);
-          }
+          window.FarcadeSDK.singlePlayer.actions.gameOver({ score: Math.floor(game.score) });
         }
       }
 
       function restartGame() {
+        // Hide game over screen
         document.getElementById("game-over-screen").style.display = "none";
+        document.getElementById("claim-tokens").style.display = "none";
         
-        // If player had pending tokens and didn't claim them,
-        // add them automatically to their game wallet
-        if (zora.isConnected && zora.initialized && game.pendingTokens > 0) {
-          game.tokens += game.pendingTokens;
-          game.pendingTokens = 0;
-          
-          // Show notification about tokens being added
-          setTimeout(() => {
-            showNotification("Tokens added to your game wallet!");
-          }, 1000);
-        }
-        
+        // Reset game state
         startGame();
       }
 
-      // Initialize the game when DOM is loaded
+      // Initialize game when DOM is loaded
       window.addEventListener("DOMContentLoaded", initGame);
-    </script>
+      </script>
   </body>
 </html>

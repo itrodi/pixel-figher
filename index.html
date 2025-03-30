@@ -680,6 +680,18 @@
     </div>
 
     <script>
+      // Check if viem is loaded and assign it to window.viem if needed
+function ensureViemLoaded() {
+  // Try to use the global viem if available
+  if (typeof viem !== 'undefined') {
+    window.viem = viem;
+    return true;
+  }
+  
+  // If not available, log error and return false
+  console.error("Viem library not loaded properly. Make sure the script is included.");
+  return false;
+}
       // Game configuration
       const config = {
         playerHealth: 100,
@@ -928,117 +940,120 @@
       }
 
       // Web3 and ZORA Integration
-      async function connectWallet() {
-        const connectButton = document.getElementById("connect-wallet");
-        const statusDiv = document.getElementById("zora-status");
+     async function connectWallet() {
+  const connectButton = document.getElementById("connect-wallet");
+  const statusDiv = document.getElementById("zora-status");
 
-        if (zora.isConnected) {
-          showModal("Already Connected", `Wallet ${shortenAddress(zora.walletAddress)} is already connected.`);
-          return;
-        }
+  if (zora.isConnected) {
+    showModal("Already Connected", `Wallet ${shortenAddress(zora.walletAddress)} is already connected.`);
+    return;
+  }
 
-        statusDiv.textContent = "Connecting wallet...";
-        connectButton.disabled = true;
+  statusDiv.textContent = "Connecting wallet...";
+  connectButton.disabled = true;
 
-        try {
-          if (!window.ethereum) {
-            throw new Error("No Web3 wallet detected. Please install MetaMask or another wallet.");
-          }
+  try {
+    // First make sure viem is available
+    if (!ensureViemLoaded()) {
+      throw new Error("Viem library not loaded. Please refresh the page and try again.");
+    }
 
-          // Request accounts access
-          const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-          zora.walletAddress = accounts[0];
+    if (!window.ethereum) {
+      throw new Error("No Web3 wallet detected. Please install MetaMask or another wallet.");
+    }
 
-          // Check chain and switch if necessary
-          const chainId = await window.ethereum.request({ method: 'eth_chainId' });
-          if (parseInt(chainId, 16) !== zora.chainConfig.id) {
-            statusDiv.textContent = `Switching to ${zora.chainConfig.name} network...`;
-            try {
-              await window.ethereum.request({
-                method: 'wallet_switchEthereumChain',
-                params: [{ chainId: `0x${zora.chainConfig.id.toString(16)}` }],
-              });
-            } catch (switchError) {
-              // If chain doesn't exist, add it
-              if (switchError.code === 4902) {
-                try {
-                  await window.ethereum.request({
-                    method: 'wallet_addEthereumChain',
-                    params: [{
-                      chainId: `0x${zora.chainConfig.id.toString(16)}`,
-                      chainName: zora.chainConfig.name,
-                      rpcUrls: [zora.chainConfig.rpcUrl],
-                      nativeCurrency: {
-                        name: 'Ether',
-                        symbol: 'ETH',
-                        decimals: 18
-                      }
-                    }],
-                  });
-                } catch (addError) {
-                  throw new Error(`Failed to add ${zora.chainConfig.name} network: ${addError.message}`);
+    // Request accounts access
+    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+    zora.walletAddress = accounts[0];
+
+    // Check chain and switch if necessary
+    const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+    if (parseInt(chainId, 16) !== zora.chainConfig.id) {
+      statusDiv.textContent = `Switching to ${zora.chainConfig.name} network...`;
+      try {
+        await window.ethereum.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: `0x${zora.chainConfig.id.toString(16)}` }],
+        });
+      } catch (switchError) {
+        // If chain doesn't exist, add it
+        if (switchError.code === 4902) {
+          try {
+            await window.ethereum.request({
+              method: 'wallet_addEthereumChain',
+              params: [{
+                chainId: `0x${zora.chainConfig.id.toString(16)}`,
+                chainName: zora.chainConfig.name,
+                rpcUrls: [zora.chainConfig.rpcUrl],
+                nativeCurrency: {
+                  name: 'Ether',
+                  symbol: 'ETH',
+                  decimals: 18
                 }
-              } else {
-                throw new Error(`Failed to switch to ${zora.chainConfig.name} network: ${switchError.message}`);
-              }
-            }
+              }],
+            });
+          } catch (addError) {
+            throw new Error(`Failed to add ${zora.chainConfig.name} network: ${addError.message}`);
           }
-
-          // Initialize viem clients
-          statusDiv.textContent = "Initializing wallet...";
-          
-          // Get viem functions from the global object
-        
-zora.publicClient = viem.createPublicClient({
-  chain: {
-    id: zora.chainConfig.id,
-    name: zora.chainConfig.name,
-    rpcUrls: {
-      default: { http: [zora.chainConfig.rpcUrl] },
-    },
-  },
-  transport: viem.http(zora.chainConfig.rpcUrl),
-});
-
-        zora.walletClient = viem.createWalletClient({
-  account: zora.walletAddress,
-  chain: {
-    id: zora.chainConfig.id,
-    name: zora.chainConfig.name,
-    rpcUrls: {
-      default: { http: [zora.chainConfig.rpcUrl] },
-    },
-  },
-  transport: viem.custom(window.ethereum),
-});
-
-
-          // Setup complete
-          zora.isConnected = true;
-          connectButton.textContent = "WALLET CONNECTED";
-          connectButton.style.backgroundColor = "#22aa22";
-          statusDiv.textContent = `Connected: ${shortenAddress(zora.walletAddress)}`;
-          
-          // Initialize game token
-          await initializeGameToken();
-          
-          // Update token display
-          updateTokenDisplay();
-          
-          // Show upgrade store
-          showStore();
-          
-          // Listen for network changes
-          window.ethereum.on('chainChanged', handleChainChange);
-          window.ethereum.on('accountsChanged', handleAccountsChange);
-        } catch (error) {
-          console.error("Wallet connection error:", error);
-          connectButton.disabled = false;
-          statusDiv.textContent = error.message || "Failed to connect wallet. Try again.";
-          zora.errorMessage = error.message;
-          zora.isConnected = false;
+        } else {
+          throw new Error(`Failed to switch to ${zora.chainConfig.name} network: ${switchError.message}`);
         }
       }
+    }
+
+    // Initialize viem clients - use window.viem explicitly
+    statusDiv.textContent = "Initializing wallet...";
+    
+    // Create clients using explicit functions from window.viem
+    zora.publicClient = window.viem.createPublicClient({
+      chain: {
+        id: zora.chainConfig.id,
+        name: zora.chainConfig.name,
+        rpcUrls: {
+          default: { http: [zora.chainConfig.rpcUrl] },
+        },
+      },
+      transport: window.viem.http(zora.chainConfig.rpcUrl),
+    });
+    
+    zora.walletClient = window.viem.createWalletClient({
+      account: zora.walletAddress,
+      chain: {
+        id: zora.chainConfig.id,
+        name: zora.chainConfig.name,
+        rpcUrls: {
+          default: { http: [zora.chainConfig.rpcUrl] },
+        },
+      },
+      transport: window.viem.custom(window.ethereum),
+    });
+
+    // Setup complete
+    zora.isConnected = true;
+    connectButton.textContent = "WALLET CONNECTED";
+    connectButton.style.backgroundColor = "#22aa22";
+    statusDiv.textContent = `Connected: ${shortenAddress(zora.walletAddress)}`;
+    
+    // Initialize game token
+    await initializeGameToken();
+    
+    // Update token display
+    updateTokenDisplay();
+    
+    // Show upgrade store
+    showStore();
+    
+    // Listen for network changes
+    window.ethereum.on('chainChanged', handleChainChange);
+    window.ethereum.on('accountsChanged', handleAccountsChange);
+  } catch (error) {
+    console.error("Wallet connection error:", error);
+    connectButton.disabled = false;
+    statusDiv.textContent = error.message || "Failed to connect wallet. Try again.";
+    zora.errorMessage = error.message;
+    zora.isConnected = false;
+  }
+}
       
       function handleChainChange() {
         // Reload the page when chain changes
@@ -1158,16 +1173,20 @@ zora.publicClient = viem.createPublicClient({
       }
       
       async function createGameToken() {
-        if (zora.creatingCoin) return;
-        zora.creatingCoin = true;
-        
-        try {
-          document.getElementById("transaction-status").style.display = "block";
-          document.getElementById("transaction-status").textContent = "Creating game token...";
-          document.getElementById("modal-actions").style.display = "none";
-          
-          // Get necessary functions from viem and the ZORA SDK
-          const { parseEther } = viem;
+  if (zora.creatingCoin) return;
+  zora.creatingCoin = true;
+  
+  try {
+    document.getElementById("transaction-status").style.display = "block";
+    document.getElementById("transaction-status").textContent = "Creating game token...";
+    document.getElementById("modal-actions").style.display = "none";
+    
+    if (!window.viem) {
+      throw new Error("Viem library not loaded properly. Please refresh the page.");
+    }
+    
+    // Use parseEther from window.viem
+    const parseEther = window.viem.parseEther;
           
           // Create the coin params
           const coinParams = {

@@ -3,11 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Pixel Fight - ZORA Edition</title>
+    <title>Pixel Fight - Endless Runner</title>
     <script src="https://unpkg.com/@farcade/game-sdk@latest/dist/index.min.js"></script>
-    <!-- ZORA and Web3 Dependencies -->
-    <script src="https://unpkg.com/viem@2.0.0/dist/index.umd.js"></script>
-    <script src="https://unpkg.com/@zoralabs/coins-sdk@0.0.3/dist/index.umd.js"></script>
     <style>
       * {
         margin: 0;
@@ -106,14 +103,17 @@
         font-weight: bold;
       }
 
-      #token-container {
+      #music-toggle {
         position: absolute;
-        top: 62px;
-        left: 10px;
+        bottom: 10px;
+        right: 10px;
         z-index: 10;
-        font-size: 14px;
-        color: #44aaff;
-        font-weight: bold;
+        font-size: 12px;
+        color: white;
+        background-color: rgba(0, 0, 0, 0.5);
+        padding: 5px 10px;
+        border-radius: 5px;
+        cursor: pointer;
       }
 
       #start-screen {
@@ -165,11 +165,6 @@
 
       .button:active {
         transform: scale(0.95);
-      }
-
-      .button:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
       }
 
       #player {
@@ -292,10 +287,6 @@
 
       .power-up.bomb {
         background-color: #ff44ff;
-      }
-
-      .power-up.token {
-        background-color: #44aaff;
       }
 
       @keyframes pulsePowerUp {
@@ -502,20 +493,20 @@
       .final-score {
         font-size: 24px;
         color: #ffffff;
-        margin-bottom: 15px;
+        margin-bottom: 30px;
+        text-align: center;
+      }
+
+      .distance-traveled {
+        font-size: 18px;
+        color: #ffffff;
+        margin-bottom: 20px;
         text-align: center;
       }
 
       .enemies-defeated {
         font-size: 18px;
         color: #ffffff;
-        margin-bottom: 10px;
-        text-align: center;
-      }
-
-      .tokens-earned {
-        font-size: 20px;
-        color: #44aaff;
         margin-bottom: 20px;
         text-align: center;
       }
@@ -529,91 +520,14 @@
         background-color: #333333;
       }
 
-      #modal {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0, 0, 0, 0.8);
-        display: none;
-        justify-content: center;
-        align-items: center;
-        z-index: 300;
-      }
-
-      #modal-content {
-        background-color: #0a0a2a;
-        padding: 20px;
-        border-radius: 10px;
-        width: 90%;
-        max-width: 400px;
-        text-align: center;
-        position: relative;
-      }
-
-      #modal-title {
-        font-size: 22px;
-        font-weight: bold;
-        color: #ffffff;
-        margin-bottom: 15px;
-      }
-
-      #modal-message {
-        font-size: 16px;
-        color: #ffffff;
-        margin-bottom: 20px;
-        line-height: 1.4;
-      }
-
-      .close-modal {
+      .distance-marker {
         position: absolute;
-        top: 10px;
-        right: 10px;
-        font-size: 20px;
-        cursor: pointer;
+        bottom: 25px;
+        font-size: 12px;
         color: #ffffff;
-      }
-
-      #zora-status {
-        display: block;
-        color: #44aaff;
-        font-size: 14px;
-        margin-top: 5px;
-        text-align: center;
-      }
-
-      .action-button {
-        padding: 8px 15px;
-        font-size: 14px;
-        font-weight: bold;
-        background-color: #44aaff;
-        color: #ffffff;
-        border: none;
-        border-radius: 5px;
-        cursor: pointer;
-        margin: 5px;
-      }
-
-      #nft-info {
-        margin-top: 15px;
-        padding: 10px;
-        background-color: rgba(68, 170, 255, 0.1);
-        border-radius: 5px;
-        text-align: left;
-        display: none;
-      }
-
-      #nft-title {
-        font-weight: bold;
-        color: #44aaff;
-      }
-
-      #transaction-status {
-        margin-top: 10px;
-        color: #ffcc00;
-        font-size: 14px;
-        display: none;
+        width: 2px;
+        height: 8px;
+        background-color: #ffffff;
       }
     </style>
   </head>
@@ -627,7 +541,7 @@
         </div>
         <div id="weapon-container">WEAPON: LV.1</div>
         <div id="bomb-container">BOMBS: 0</div>
-        <div id="token-container">TOKENS: 0</div>
+        <div id="music-toggle">MUSIC: ON</div>
 
         <div class="road"></div>
 
@@ -644,8 +558,6 @@
           Auto-fire when enemies are in range.<br />
           Collect power-ups to survive the battle!
         </div>
-        <button id="connect-wallet" class="button" style="background-color: #44aaff; margin-top: 15px;">CONNECT WALLET</button>
-        <div id="zora-status">Connect wallet to earn & use PFT tokens</div>
         <button id="start-button" class="button">START GAME</button>
       </div>
 
@@ -654,8 +566,6 @@
         <div class="final-score" id="final-score">FINAL SCORE: 0</div>
         <div class="enemies-defeated" id="enemies-defeated">ENEMIES DEFEATED: 0</div>
         <div class="wave-reached" id="wave-reached">WAVE REACHED: 0</div>
-        <div class="tokens-earned" id="tokens-earned">TOKENS EARNED: 0</div>
-        <button id="claim-tokens" class="button" style="background-color: #44aaff; display: none;">CLAIM TOKENS</button>
         <button id="restart-button" class="button">PLAY AGAIN</button>
       </div>
 
@@ -665,60 +575,41 @@
       </div>
     </div>
 
-    <div id="modal">
-      <div id="modal-content">
-        <span class="close-modal">&times;</span>
-        <div id="modal-title">Title</div>
-        <div id="modal-message">Message</div>
-        <div id="nft-info">
-          <div id="nft-title">Pixel Fight Token (PFT)</div>
-          <div id="nft-details">The official token for the Pixel Fight game. Earn by playing, spend on upgrades!</div>
-        </div>
-        <div id="transaction-status">Processing transaction...</div>
-        <div id="modal-actions"></div>
-      </div>
-    </div>
-
     <script>
-      // Check if viem is loaded and assign it to window.viem if needed
-function ensureViemLoaded() {
-  // Try to use the global viem if available
-  if (typeof viem !== 'undefined') {
-    window.viem = viem;
-    return true;
-  }
-  
-  // If not available, log error and return false
-  console.error("Viem library not loaded properly. Make sure the script is included.");
-  return false;
-}
+      // Background music
+      const bgMusic = new Audio(
+        "https://lqy3lriiybxcejon.public.blob.vercel-storage.com/Pz7LBDdo4beh/be-more-serious-loop-275528-4yiRgTDdTCftlaFp3X5Z92GUCHXzTm.mpeg?fXHA",
+      );
+      bgMusic.loop = true;
+      bgMusic.volume = 0.2;
+
       // Game configuration
       const config = {
         playerHealth: 100,
         playerSpeed: 5,
         bulletSpeed: 8,
         enemyBulletSpeed: 5,
-        enemySpeed: 1.4,
+        enemySpeed: 1.4, // Increased from 1.2 for more intensity
         enemyCount: {
-          initial: 15,
-          incrementPerWave: 3,
-          max: 35,
+          initial: 15, // Increased from 5 to 15 for more intensity from start
+          incrementPerWave: 3, // Increased from 2 for steeper difficulty curve
+          max: 35, // Increased from 30 for higher maximum
         },
-        enemyShootChance: 0.015,
-        powerUpChance: 0.05,
-        baseEnemyDamage: 12,
-        shieldDuration: 6000,
-        invincibilityTime: 1500,
+        enemyShootChance: 0.02, // Increased from 0.01 for more bullets/intensity
+        powerUpChance: 0.01, // REDUCED from 0.1 to 0.05 for fewer power-ups
+        baseEnemyDamage: 12, // Increased from 10 for more challenge
+        shieldDuration: 9000, // Reduced from 8000 for less protection time
+        invincibilityTime: 1500, // Kept the same
         allyCount: 0,
-        maxAllies: 8,
-        progressSpeed: 1,
-        autoShootDelay: 500,
-        waveAdvanceDistance: 500,
+        maxAllies: 9, // Increased from 6 to let skilled players get more allies
+        progressSpeed: 1.5, // Speed at which the player progresses forward
+        autoShootDelay: 500, // ms between auto-shots
+        waveAdvanceDistance: 300, // Distance to advance to the next wave
         scoreValues: {
-          normalEnemy: 5,
-          fastEnemy: 10,
-          toughEnemy: 15,
-          zigzagEnemy: 12,
+          normalEnemy: 5, // REDUCED from 10 to 5 per request
+          fastEnemy: 10, // REDUCED from 20 to 10
+          toughEnemy: 15, // REDUCED from 30 to 15
+          zigzagEnemy: 12, // REDUCED from 25 to 12
         },
         enemyHealth: {
           normal: 2,
@@ -726,38 +617,26 @@ function ensureViemLoaded() {
           tough: 5,
           zigzag: 3,
         },
-        starCount: 50,
-        difficultyMultiplier: 1.2,
-        screenWidth: 0,
-        laneCount: 5,
-        laneSafety: 100,
-        healthDropChance: 0.02,
-        shieldDropChance: 0.07,
-        bombDropChance: 0.03,
-        allyDropChance: 0.1,
-        weaponUpgradeChance: 0.05,
-        tokenDropChance: 0.06, // New: token drop chance
-        damageMultiplierAfterWave3: 1.5,
+        starCount: 50, // Background stars
+        difficultyMultiplier: 1.2, // Increased from 1.15 for faster ramp-up
+        screenWidth: 0, // Will be set during initialization
+        laneCount: 5, // Number of lanes
+        laneSafety: 100, // Distance from sides for valid lanes
+        healthDropChance: 0.01, // REDUCED from 0.05 to 0.03 for fewer health drops
+        shieldDropChance: 0.08, // REDUCED from 0.15 to 0.08 for fewer shield drops
+        bombDropChance: 0.04, // REDUCED from 0.05 to 0.04 for fewer bomb drops
+        allyDropChance: 0.12, // NEW - dedicated chance for ally drops (higher than others)
+        weaponUpgradeChance: 0.06, // REDUCED from 0.075 to 0.06 for fewer weapon upgrades
+        damageMultiplierAfterWave3: 1.5, // Unchanged
         bulletDamage: {
+          // Damage per weapon level
           1: 1,
           2: 2,
           3: 3,
         },
-        bombDamageRadius: 100,
-        allyFormationGap: 40,
-        waveClearBonusMultiplier: 25,
-        // ZORA SDK Configuration
-        tokenEarnRate: 100, // Score needed to earn 1 token
-        waveBonus: 5, // Tokens per wave completed
-        minTokensToClaim: 5, // Minimum tokens to claim
-        initialTokens: 10, // Starting tokens for new players
-        // Costs for upgrades
-        upgradeCosts: {
-          weapon: 10,
-          shield: 5,
-          bomb: 3,
-          ally: 8
-        }
+        bombDamageRadius: 100, // Pixels (explosion radius)
+        allyFormationGap: 40, // Gap between allies in formation
+        waveClearBonusMultiplier: 25, // REDUCED from 50 to 25 for lower scoring
       };
 
       // Game state
@@ -765,7 +644,7 @@ function ensureViemLoaded() {
         state: "loading",
         score: 0,
         distance: 0,
-        currentDistance: 0,
+        currentDistance: 0, // Distance within current wave
         enemiesDefeated: 0,
         health: config.playerHealth,
         wave: 1,
@@ -775,13 +654,13 @@ function ensureViemLoaded() {
           y: 0,
           width: 24,
           height: 24,
-          lane: 2,
+          lane: 2, // Middle lane (0-4)
           element: null,
           shielded: false,
           invincible: false,
-          moving: false,
-          weaponLevel: 1,
-          bombCount: 0,
+          moving: false, // Whether player is advancing forward
+          weaponLevel: 1, // New: weapon level (1-3)
+          bombCount: 0, // New: number of bombs player has
         },
         allies: [],
         enemies: [],
@@ -790,9 +669,7 @@ function ensureViemLoaded() {
         powerUps: [],
         particles: [],
         stars: [],
-        lanes: [],
-        tokens: 0, // New: token count
-        pendingTokens: 0, // New: tokens earned but not claimed
+        lanes: [], // Lane positions
         keys: {
           left: false,
           right: false,
@@ -805,57 +682,33 @@ function ensureViemLoaded() {
         farcadeInitialized: false,
         shieldTimer: null,
         lastAutoShoot: 0,
-        hasEnemies: false,
-        allEnemiesDefeated: false,
-      };
-
-      // ZORA integration
-      const zora = {
-        isConnected: false,
-        walletAddress: null,
-        coinAddress: null, // Will be set after coin creation/retrieval
-        walletClient: null,
-        publicClient: null,
-        provider: null,
-        initialized: false,
-        coinName: "Pixel Fight Token",
-        coinSymbol: "PFT",
-        coinMetadataUri: "ipfs://bafkreihbdjsma7smynrchyqiwhuknptxcrgqrxhzal22hzb25ypzyjuroa", // Example IPFS hash
-        initialLiquidityAmount: "0.001", // ~$10 at ~$3000/ETH
-        // Chaindata
-        chainConfig: {
-          id: 8453, // Base mainnet
-          name: 'Base',
-          rpcUrl: 'https://mainnet.base.org'
-        },
-        /* For testnet
-        chainConfig: {
-          id: 84531, // Base Goerli testnet
-          name: 'Base Goerli',
-          rpcUrl: 'https://goerli.base.org'
-        }, */
-        creatingCoin: false,
-        initializingTokens: false,
-        claimingTokens: false,
-        errorMessage: "",
-        gameNonce: 0, // Used to track game sessions
+        hasEnemies: false, // Flag to track if enemies are present
+        allEnemiesDefeated: false, // Flag to track if all enemies are defeated
+        musicMuted: false, // Flag for background music
       };
 
       // Audio
       const audio = {
         isMuted: false,
         sounds: {
-          shoot: new Audio("https://assets.codepen.io/21542/sfx_weapon_singleshot7.wav"),
+          shoot: new Audio(
+            "https://lqy3lriiybxcejon.public.blob.vercel-storage.com/Pz7LBDdo4beh/shooting-sound-fx-159024-E4IGVcUkuYVQuAW0MR0h6gduRwjtcO.mpeg?0VEa",
+          ),
           enemyShoot: new Audio("https://assets.codepen.io/21542/sfx_weapon_singleshot8.wav"),
           hit: new Audio("https://assets.codepen.io/21542/sfx_deathscream_alien1.wav"),
           playerHit: new Audio("https://assets.codepen.io/21542/sfx_deathscream_human4.wav"),
-          powerUp: new Audio("https://assets.codepen.io/21542/sfx_sounds_powerup4.wav"),
+          powerUp: new Audio(
+            "https://lqy3lriiybxcejon.public.blob.vercel-storage.com/Pz7LBDdo4beh/bonus-points-190035-mRExh6Erfx6SVb7Pn7pqzNZR9l9rDT.mpeg?xpp4",
+          ),
           newAlly: new Audio("https://assets.codepen.io/21542/sfx_sounds_powerup6.wav"),
           gameOver: new Audio("https://assets.codepen.io/21542/sfx_sound_shutdown1.wav"),
           newWave: new Audio("https://assets.codepen.io/21542/sfx_sounds_fanfare3.wav"),
-          bomb: new Audio("https://assets.codepen.io/21542/explosion.wav"),
-          upgrade: new Audio("https://assets.codepen.io/21542/sfx_sounds_powerup4.wav"),
-          token: new Audio("https://assets.codepen.io/21542/coin.wav"),
+          bomb: new Audio(
+            "https://lqy3lriiybxcejon.public.blob.vercel-storage.com/Pz7LBDdo4beh/a-bomb-139689-CUKc93EiEysZZRP32gtBSPQhfZX6yk.mpeg?D0sK",
+          ), // Will substitute with a similar sound
+          upgrade: new Audio(
+            "https://lqy3lriiybxcejon.public.blob.vercel-storage.com/Pz7LBDdo4beh/bonus-points-190035-mRExh6Erfx6SVb7Pn7pqzNZR9l9rDT.mpeg?xpp4",
+          ), // Will substitute with a similar sound
         },
         play: function (soundName) {
           if (this.isMuted) return;
@@ -867,6 +720,7 @@ function ensureViemLoaded() {
                 sound.volume = 0.3;
                 sound.play().catch((err) => console.log("Audio playback prevented:", err));
               } else {
+                // If the sound is already playing, create a new Audio instance
                 const newSound = new Audio(sound.src);
                 newSound.volume = 0.3;
                 newSound.play().catch((err) => console.log("Audio playback prevented:", err));
@@ -878,8 +732,27 @@ function ensureViemLoaded() {
         },
         setMuted: function (muted) {
           this.isMuted = muted;
+
+          // Also handle background music
+          if (muted) {
+            bgMusic.pause();
+          } else if (game.state === "playing" && !game.musicMuted) {
+            bgMusic.play().catch((err) => console.log("Music resume failed:", err));
+          }
         },
       };
+
+      // Music toggle handler
+      function toggleMusic() {
+        game.musicMuted = !game.musicMuted;
+        document.getElementById("music-toggle").textContent = `MUSIC: ${game.musicMuted ? "OFF" : "ON"}`;
+
+        if (game.musicMuted) {
+          bgMusic.pause();
+        } else if (game.state === "playing" && !audio.isMuted) {
+          bgMusic.play().catch((err) => console.log("Music toggle failed:", err));
+        }
+      }
 
       // Functions to preload sounds
       function preloadSounds() {
@@ -898,6 +771,9 @@ function ensureViemLoaded() {
               console.log("Audio preload interrupted:", err);
             });
         }
+
+        // Also preload background music
+        bgMusic.load();
       }
 
       // Initialize the game
@@ -915,17 +791,12 @@ function ensureViemLoaded() {
         // Initialize lane positions
         initializeLanes();
 
-        // Setup web3 connection button
-        document.getElementById("connect-wallet").addEventListener("click", connectWallet);
-        document.getElementById("claim-tokens").addEventListener("click", claimTokensToWallet);
-
-        // Close modal on X click
-        document.querySelector(".close-modal").addEventListener("click", closeModal);
+        // Set up music toggle
+        document.getElementById("music-toggle").addEventListener("click", toggleMusic);
 
         setTimeout(() => {
           document.getElementById("loading-screen").style.display = "none";
           game.state = "start";
-          updateTokenDisplay();
         }, 1500);
       }
 
@@ -937,616 +808,6 @@ function ensureViemLoaded() {
         for (let i = 0; i < config.laneCount; i++) {
           game.lanes.push(config.laneSafety + i * laneWidth);
         }
-      }
-
-      // Web3 and ZORA Integration
-     async function connectWallet() {
-  const connectButton = document.getElementById("connect-wallet");
-  const statusDiv = document.getElementById("zora-status");
-
-  if (zora.isConnected) {
-    showModal("Already Connected", `Wallet ${shortenAddress(zora.walletAddress)} is already connected.`);
-    return;
-  }
-
-  statusDiv.textContent = "Connecting wallet...";
-  connectButton.disabled = true;
-
-  try {
-    // First make sure viem is available
-    if (!ensureViemLoaded()) {
-      throw new Error("Viem library not loaded. Please refresh the page and try again.");
-    }
-
-    if (!window.ethereum) {
-      throw new Error("No Web3 wallet detected. Please install MetaMask or another wallet.");
-    }
-
-    // Request accounts access
-    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-    zora.walletAddress = accounts[0];
-
-    // Check chain and switch if necessary
-    const chainId = await window.ethereum.request({ method: 'eth_chainId' });
-    if (parseInt(chainId, 16) !== zora.chainConfig.id) {
-      statusDiv.textContent = `Switching to ${zora.chainConfig.name} network...`;
-      try {
-        await window.ethereum.request({
-          method: 'wallet_switchEthereumChain',
-          params: [{ chainId: `0x${zora.chainConfig.id.toString(16)}` }],
-        });
-      } catch (switchError) {
-        // If chain doesn't exist, add it
-        if (switchError.code === 4902) {
-          try {
-            await window.ethereum.request({
-              method: 'wallet_addEthereumChain',
-              params: [{
-                chainId: `0x${zora.chainConfig.id.toString(16)}`,
-                chainName: zora.chainConfig.name,
-                rpcUrls: [zora.chainConfig.rpcUrl],
-                nativeCurrency: {
-                  name: 'Ether',
-                  symbol: 'ETH',
-                  decimals: 18
-                }
-              }],
-            });
-          } catch (addError) {
-            throw new Error(`Failed to add ${zora.chainConfig.name} network: ${addError.message}`);
-          }
-        } else {
-          throw new Error(`Failed to switch to ${zora.chainConfig.name} network: ${switchError.message}`);
-        }
-      }
-    }
-
-    // Initialize viem clients - use window.viem explicitly
-    statusDiv.textContent = "Initializing wallet...";
-    
-    // Create clients using explicit functions from window.viem
-    zora.publicClient = window.viem.createPublicClient({
-      chain: {
-        id: zora.chainConfig.id,
-        name: zora.chainConfig.name,
-        rpcUrls: {
-          default: { http: [zora.chainConfig.rpcUrl] },
-        },
-      },
-      transport: window.viem.http(zora.chainConfig.rpcUrl),
-    });
-    
-    zora.walletClient = window.viem.createWalletClient({
-      account: zora.walletAddress,
-      chain: {
-        id: zora.chainConfig.id,
-        name: zora.chainConfig.name,
-        rpcUrls: {
-          default: { http: [zora.chainConfig.rpcUrl] },
-        },
-      },
-      transport: window.viem.custom(window.ethereum),
-    });
-
-    // Setup complete
-    zora.isConnected = true;
-    connectButton.textContent = "WALLET CONNECTED";
-    connectButton.style.backgroundColor = "#22aa22";
-    statusDiv.textContent = `Connected: ${shortenAddress(zora.walletAddress)}`;
-    
-    // Initialize game token
-    await initializeGameToken();
-    
-    // Update token display
-    updateTokenDisplay();
-    
-    // Show upgrade store
-    showStore();
-    
-    // Listen for network changes
-    window.ethereum.on('chainChanged', handleChainChange);
-    window.ethereum.on('accountsChanged', handleAccountsChange);
-  } catch (error) {
-    console.error("Wallet connection error:", error);
-    connectButton.disabled = false;
-    statusDiv.textContent = error.message || "Failed to connect wallet. Try again.";
-    zora.errorMessage = error.message;
-    zora.isConnected = false;
-  }
-}
-      
-      function handleChainChange() {
-        // Reload the page when chain changes
-        window.location.reload();
-      }
-      
-      function handleAccountsChange(accounts) {
-        if (accounts.length === 0) {
-          // User disconnected their wallet
-          zora.isConnected = false;
-          zora.walletAddress = null;
-          document.getElementById("connect-wallet").textContent = "CONNECT WALLET";
-          document.getElementById("connect-wallet").style.backgroundColor = "#44aaff";
-          document.getElementById("connect-wallet").disabled = false;
-          document.getElementById("zora-status").textContent = "Connect wallet to earn & use PFT tokens";
-        } else if (accounts[0] !== zora.walletAddress) {
-          // User switched accounts
-          window.location.reload();
-        }
-      }
-      
-      function shortenAddress(address) {
-        return `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
-      }
-      
-      async function initializeGameToken() {
-        try {
-          if (zora.initializingTokens) return;
-          zora.initializingTokens = true;
-          
-          const statusDiv = document.getElementById("zora-status");
-          statusDiv.textContent = "Checking token...";
-          
-          // Try to fetch the token info
-          let coinAddress;
-          
-          // Check for an existing coin
-          const HARDCODED_COIN_ADDRESS = localStorage.getItem("pixelFightCoinAddress") || "";
-          
-          if (HARDCODED_COIN_ADDRESS) {
-            // Use the hardcoded address if it exists
-            coinAddress = HARDCODED_COIN_ADDRESS;
-            zora.coinAddress = coinAddress;
-            
-            // Verify it exists using the ZORA SDK
-            try {
-              const coinDetails = await getCoinDetails(coinAddress);
-              
-              if (coinDetails) {
-                statusDiv.textContent = `Connected: ${shortenAddress(zora.walletAddress)} | Token: ${coinDetails.symbol || zora.coinSymbol}`;
-                zora.initialized = true;
-                zora.initializingTokens = false;
-                
-                // Set initial tokens (simulated - in a real app, you'd query the blockchain)
-                game.tokens = config.initialTokens;
-                updateTokenDisplay();
-                return;
-              }
-            } catch (e) {
-              console.log("Token verification failed, will create new token:", e);
-              // Continue to token creation
-            }
-          }
-          
-          // If we get here, we need to create a new coin
-          showModal(
-            "Create Game Token",
-            "Would you like to create the Pixel Fight Token (PFT)? This will require a small amount of ETH for gas and initial liquidity (about $10).",
-            [
-              {
-                text: "CREATE TOKEN",
-                action: createGameToken,
-                style: "background-color: #44aaff;"
-              },
-              {
-                text: "CANCEL",
-                action: closeModal,
-                style: "background-color: #666666;"
-              }
-            ],
-            true
-          );
-          
-          zora.initializingTokens = false;
-        } catch (error) {
-          console.error("Failed to initialize game token:", error);
-          zora.errorMessage = error.message;
-          zora.initializingTokens = false;
-          
-          const statusDiv = document.getElementById("zora-status");
-          statusDiv.textContent = "Token initialization failed. Play without tokens.";
-        }
-      }
-      
-      async function getCoinDetails(coinAddress) {
-        try {
-          // Use ZORA SDK to get coin details
-          if (!window.zoralabsCoinsSdk) {
-            throw new Error("ZORA SDK not loaded");
-          }
-          
-          // Call the getCoin function from the ZORA SDK
-          const response = await window.zoralabsCoinsSdk.getCoin({ 
-            address: coinAddress,
-            chain: zora.chainConfig.id
-          });
-          
-          if (response && response.data && response.data.zora20Token) {
-            return response.data.zora20Token;
-          }
-          
-          return null;
-        } catch (error) {
-          console.error("Error getting coin details:", error);
-          return null;
-        }
-      }
-      
-      async function createGameToken() {
-  if (zora.creatingCoin) return;
-  zora.creatingCoin = true;
-  
-  try {
-    document.getElementById("transaction-status").style.display = "block";
-    document.getElementById("transaction-status").textContent = "Creating game token...";
-    document.getElementById("modal-actions").style.display = "none";
-    
-    if (!window.viem) {
-      throw new Error("Viem library not loaded properly. Please refresh the page.");
-    }
-    
-    // Use parseEther from window.viem
-    const parseEther = window.viem.parseEther;
-          
-          // Create the coin params
-          const coinParams = {
-            name: zora.coinName,
-            symbol: zora.coinSymbol,
-            uri: zora.coinMetadataUri,
-            payoutRecipient: zora.walletAddress, // This address receives creator fees
-            initialPurchaseWei: parseEther(zora.initialLiquidityAmount),
-          };
-          
-          // Get the ZORA coin factory contract details
-          const zoraCoinFactoryAbi = [
-            {
-              "inputs": [
-                { "name": "name", "type": "string" },
-                { "name": "symbol", "type": "string" },
-                { "name": "uri", "type": "string" },
-                { "name": "payoutRecipient", "type": "address" },
-                { "name": "initialPurchaseWei", "type": "uint256" }
-              ],
-              "name": "createCoin",
-              "outputs": [],
-              "stateMutability": "payable",
-              "type": "function"
-            }
-          ];
-          
-          // Get the coin factory address - ideally this would come from the SDK
-          // For now, we'll use a placeholder. In production, replace with actual address
-          // from ZORA documentation
-          const coinFactoryAddress = "0x7777773606e7e46C8Ba8B98C08f5cD218e31d340"; // Example address, replace with actual
-          
-          // Manually construct the request for viem
-          const createRequest = {
-            address: coinFactoryAddress,
-            abi: zoraCoinFactoryAbi,
-            functionName: "createCoin",
-            args: [
-              coinParams.name,
-              coinParams.symbol,
-              coinParams.uri,
-              coinParams.payoutRecipient,
-              coinParams.initialPurchaseWei,
-            ],
-            value: coinParams.initialPurchaseWei, // Must match initialPurchaseWei
-          };
-          
-          // Simulate the transaction to catch errors early
-          try {
-            document.getElementById("transaction-status").textContent = "Simulating transaction...";
-            await zora.publicClient.simulateContract(createRequest);
-          } catch (simulateError) {
-            throw new Error(`Transaction simulation failed: ${simulateError.message}`);
-          }
-          
-          // Execute the transaction
-          document.getElementById("transaction-status").textContent = "Waiting for wallet confirmation...";
-          const txHash = await zora.walletClient.writeContract(createRequest);
-          
-          document.getElementById("transaction-status").textContent = "Transaction submitted, waiting for confirmation...";
-          
-          // Wait for transaction to be mined
-          const receipt = await zora.publicClient.waitForTransactionReceipt({ hash: txHash });
-          
-          // Get the coin address from the logs
-          // In a real implementation, we'd use the SDK's getCoinCreateFromLogs function
-          // For now, we'll simulate it
-          const coinAddress = "0x" + receipt.logs[0].topics[1].slice(26); // Simulated extraction
-          
-          // Save the coin address
-          zora.coinAddress = coinAddress;
-          localStorage.setItem("pixelFightCoinAddress", coinAddress);
-          
-          document.getElementById("transaction-status").textContent = "Token created successfully!";
-          document.getElementById("zora-status").textContent = 
-            `Connected: ${shortenAddress(zora.walletAddress)} | Token: ${zora.coinSymbol}`;
-          
-          zora.initialized = true;
-          
-          // Set initial tokens
-          game.tokens = config.initialTokens;
-          updateTokenDisplay();
-          
-          // Show success and close after delay
-          setTimeout(() => {
-            closeModal();
-            showStore();
-          }, 2000);
-        } catch (error) {
-          console.error("Token creation failed:", error);
-          document.getElementById("transaction-status").textContent = "Token creation failed. Try again later.";
-          document.getElementById("modal-actions").style.display = "block";
-        } finally {
-          zora.creatingCoin = false;
-        }
-      }
-      
-      function showStore() {
-        if (!zora.isConnected || !zora.initialized) return;
-        
-        const upgrades = [
-          {
-            name: "WEAPON UPGRADE",
-            description: game.player.weaponLevel < 3 
-              ? `Increase weapon level to ${game.player.weaponLevel + 1}. More damage!`
-              : "Weapon already at maximum level!",
-            cost: config.upgradeCosts.weapon,
-            action: purchaseWeaponUpgrade,
-            available: game.player.weaponLevel < 3
-          },
-          {
-            name: "SHIELD",
-            description: "Buy a shield power-up for your next game.",
-            cost: config.upgradeCosts.shield,
-            action: purchaseShield,
-            available: true
-          },
-          {
-            name: "BOMB",
-            description: "Buy a bomb for your next game. Clear enemies quickly!",
-            cost: config.upgradeCosts.bomb,
-            action: purchaseBomb,
-            available: true
-          },
-          {
-            name: "ALLY",
-            description: game.allies.length < config.maxAllies 
-              ? "Recruit an ally to help you fight!"
-              : "Maximum allies already reached!",
-            cost: config.upgradeCosts.ally,
-            action: purchaseAlly,
-            available: game.allies.length < config.maxAllies
-          }
-        ];
-        
-        showModal(
-          "PIXEL FIGHT STORE",
-          `You have ${game.tokens} PFT tokens. Spend them on upgrades!`,
-          upgrades.map(upgrade => ({
-            text: `${upgrade.name} (${upgrade.cost} PFT)`,
-            description: upgrade.description,
-            action: upgrade.action,
-            style: `background-color: ${upgrade.available && game.tokens >= upgrade.cost ? '#44aaff' : '#666666'};`,
-            disabled: !upgrade.available || game.tokens < upgrade.cost
-          }))
-        );
-      }
-      
-      function purchaseWeaponUpgrade() {
-        if (game.tokens < config.upgradeCosts.weapon || game.player.weaponLevel >= 3) return;
-        
-        // Deduct tokens
-        game.tokens -= config.upgradeCosts.weapon;
-        
-        // Upgrade weapon
-        game.player.weaponLevel = Math.min(game.player.weaponLevel + 1, 3);
-        
-        // Update displays
-        updateTokenDisplay();
-        updateWeaponDisplay();
-        
-        // Sound effect
-        audio.play("upgrade");
-        
-        // Close modal and show confirmation
-        closeModal();
-        showNotification(`WEAPON UPGRADED TO LV.${game.player.weaponLevel}!`);
-      }
-      
-      function purchaseShield() {
-        if (game.tokens < config.upgradeCosts.shield) return;
-        
-        // Deduct tokens
-        game.tokens -= config.upgradeCosts.shield;
-        
-        // Apply shield effect for next game
-        activateShield();
-        
-        // Update display
-        updateTokenDisplay();
-        
-        // Sound effect
-        audio.play("powerUp");
-        
-        // Close modal and show confirmation
-        closeModal();
-        showNotification("SHIELD ACTIVATED!");
-      }
-      
-      function purchaseBomb() {
-        if (game.tokens < config.upgradeCosts.bomb) return;
-        
-        // Deduct tokens
-        game.tokens -= config.upgradeCosts.bomb;
-        
-        // Add bomb
-        game.player.bombCount++;
-        
-        // Update displays
-        updateTokenDisplay();
-        updateBombDisplay();
-        
-        // Sound effect
-        audio.play("powerUp");
-        
-        // Close modal and show confirmation
-        closeModal();
-        showNotification("BOMB ADDED!");
-      }
-      
-      function purchaseAlly() {
-        if (game.tokens < config.upgradeCosts.ally || game.allies.length >= config.maxAllies) return;
-        
-        // Deduct tokens
-        game.tokens -= config.upgradeCosts.ally;
-        
-        // Add ally
-        createAlly();
-        
-        // Update displays
-        updateTokenDisplay();
-        
-        // Sound effect
-        audio.play("newAlly");
-        
-        // Close modal and show confirmation
-        closeModal();
-        showNotification("ALLY ADDED!");
-      }
-      
-      async function claimTokensToWallet() {
-        if (!zora.isConnected || !zora.initialized || game.pendingTokens < config.minTokensToClaim) return;
-        
-        if (zora.claimingTokens) return;
-        zora.claimingTokens = true;
-        
-        const claimButton = document.getElementById("claim-tokens");
-        claimButton.textContent = "CLAIMING...";
-        claimButton.disabled = true;
-        
-        try {
-          showModal(
-            "Claiming Tokens",
-            `Converting your ${game.pendingTokens} game tokens to PFT tokens on the blockchain...`,
-            [],
-            true
-          );
-          
-          document.getElementById("transaction-status").style.display = "block";
-          document.getElementById("transaction-status").textContent = "Preparing transaction...";
-          
-          // Define the token ABI for minting
-          const tokenAbi = [
-            {
-              "inputs": [
-                { "name": "to", "type": "address" },
-                { "name": "amount", "type": "uint256" }
-              ],
-              "name": "mint",
-              "outputs": [],
-              "stateMutability": "nonpayable",
-              "type": "function"
-            }
-          ];
-          
-          // Prepare mint request
-          const mintRequest = {
-            address: zora.coinAddress,
-            abi: tokenAbi,
-            functionName: "mint",
-            args: [
-              zora.walletAddress,
-              window.viem.parseEther(game.pendingTokens.toString())
-            ]
-          };
-          
-          // Simulate the transaction first
-          try {
-            await zora.publicClient.simulateContract(mintRequest);
-          } catch (simulateError) {
-            console.log("Simulation error (expected for demo):", simulateError);
-            // For demo purposes, we'll continue despite the error
-            // In a real implementation, we would handle this properly
-          }
-          
-          // For a hackathon demo, we'll simulate this with a delay
-          // In a real implementation, this would call the actual mint function
-          document.getElementById("transaction-status").textContent = "Processing transaction...";
-          await new Promise(resolve => setTimeout(resolve, 3000));
-          
-          document.getElementById("transaction-status").textContent = "Transaction confirmed!";
-          
-          // Update token counts
-          game.tokens += game.pendingTokens;
-          game.pendingTokens = 0;
-          
-          // Update displays
-          updateTokenDisplay();
-          document.getElementById("tokens-earned").textContent = `TOKENS EARNED: 0`;
-          claimButton.style.display = "none";
-          
-          // Close modal after delay
-          setTimeout(() => {
-            closeModal();
-            showNotification(`TOKENS CLAIMED!`);
-          }, 1500);
-        } catch (error) {
-          console.error("Failed to claim tokens:", error);
-          document.getElementById("transaction-status").textContent = "Token claim failed. Try again later.";
-          
-          // Reset button
-          claimButton.textContent = "CLAIM TOKENS";
-          claimButton.disabled = false;
-        } finally {
-          zora.claimingTokens = false;
-        }
-      }
-
-      function showModal(title, message, actions = [], showNftInfo = false) {
-        document.getElementById("modal-title").textContent = title;
-        document.getElementById("modal-message").textContent = message;
-        
-        // Clear previous actions
-        const actionsContainer = document.getElementById("modal-actions");
-        actionsContainer.innerHTML = "";
-        actionsContainer.style.display = actions.length > 0 ? "block" : "none";
-        
-        // Add new actions
-        actions.forEach(action => {
-          const button = document.createElement("button");
-          button.className = "action-button";
-          button.textContent = action.text;
-          button.style = action.style || "";
-          
-          if (action.disabled) {
-            button.disabled = true;
-            button.style.opacity = "0.5";
-            button.style.cursor = "not-allowed";
-          }
-          
-          if (action.description) {
-            button.title = action.description;
-          }
-          
-          button.addEventListener("click", action.action);
-          actionsContainer.appendChild(button);
-        });
-        
-        // Show/hide NFT info
-        document.getElementById("nft-info").style.display = showNftInfo ? "block" : "none";
-        
-        // Hide transaction status initially
-        document.getElementById("transaction-status").style.display = "none";
-        
-        // Show modal
-        document.getElementById("modal").style.display = "flex";
-      }
-      
-      function closeModal() {
-        document.getElementById("modal").style.display = "none";
       }
 
       function initFarcadeSDK() {
@@ -1639,6 +900,9 @@ function ensureViemLoaded() {
             if (game.player.bombCount > 0) {
               useBomb();
             }
+          } else if (e.key === "m") {
+            // M key to toggle music
+            toggleMusic();
           }
         });
 
@@ -1658,6 +922,7 @@ function ensureViemLoaded() {
         if (game.player.lane > 0) {
           game.player.lane--;
           updatePlayerPosition();
+          audio.play("move");
           triggerHapticFeedback();
         }
       }
@@ -1667,6 +932,7 @@ function ensureViemLoaded() {
         if (game.player.lane < config.laneCount - 1) {
           game.player.lane++;
           updatePlayerPosition();
+          audio.play("move");
           triggerHapticFeedback();
         }
       }
@@ -1721,7 +987,7 @@ function ensureViemLoaded() {
             handleEnemyDefeat(enemy, i);
             enemiesDestroyed++;
 
-            // Limit to 8 enemies maximum
+            // Limit to 8 enemies maximum (increased from 5)
             if (enemiesDestroyed >= 8) break;
           }
         }
@@ -1730,10 +996,10 @@ function ensureViemLoaded() {
         audio.play("bomb");
         triggerHapticFeedback();
 
-        // Create score popup
+        // Create score popup - reduced from 20 to 10 per enemy
         createScorePopup(game.player.x, game.player.y - 20, `BOMB! +${enemiesDestroyed * 10}`);
 
-        // Add score
+        // Add score - reduced from 20 to 10 per enemy
         game.score += enemiesDestroyed * 10;
       }
 
@@ -1756,7 +1022,11 @@ function ensureViemLoaded() {
         updateWeaponDisplay();
         updateBombDisplay();
         updateWaveDisplay();
-        updateTokenDisplay();
+
+        // Start background music if not muted
+        if (!game.musicMuted) {
+          bgMusic.play().catch((err) => console.log("Music start failed:", err));
+        }
 
         game.lastUpdateTime = performance.now();
         game.state = "playing";
@@ -1774,20 +1044,14 @@ function ensureViemLoaded() {
         game.hasEnemies = false;
         game.player.moving = false;
         game.allEnemiesDefeated = false;
-        game.pendingTokens = 0;
-        
-        // If not connected to wallet, reset these values
-        if (!zora.isConnected) {
-          game.player.weaponLevel = 1;
-          game.player.bombCount = 0;
-        }
+        game.player.weaponLevel = 1;
+        game.player.bombCount = 1; // Start with 1 bomb
 
         updateScoreDisplay();
         updateWaveDisplay();
         updateHealthBar();
         updateWeaponDisplay();
         updateBombDisplay();
-        updateTokenDisplay();
 
         // Clean up existing elements
         clearGameElements();
@@ -1865,7 +1129,7 @@ function ensureViemLoaded() {
         );
 
         // Spawn enemies over time
-        const spawnDelay = 250;
+        const spawnDelay = 250; // Decreased from 300 for faster spawn
         for (let i = 0; i < enemyCount; i++) {
           setTimeout(
             () => {
@@ -2097,21 +1361,19 @@ function ensureViemLoaded() {
             // Higher chance for health only when critically low
             if (typeRandom < 0.35) powerUpType = "health";
             else if (typeRandom < 0.55) powerUpType = "shield";
-            else if (typeRandom < 0.85) powerUpType = "ally"; // Increased ally chance
+            else if (typeRandom < 0.85)
+              powerUpType = "ally"; // Increased ally chance
             else if (typeRandom < 0.95) powerUpType = "weapon";
             else powerUpType = "bomb";
           } else {
             // Normal distribution (prioritize allies over other power-ups)
-            if (typeRandom < 0.4) powerUpType = "ally"; // Highest chance for allies
-            else if (typeRandom < 0.6) powerUpType = "shield";
-            else if (typeRandom < 0.75) powerUpType = "health";
+            if (typeRandom < 0.45)
+              powerUpType = "ally"; // Highest chance for allies
+            else if (typeRandom < 0.65) powerUpType = "shield";
+            else if (typeRandom < 0.75)
+              powerUpType = "health"; // Lower chance for health
             else if (typeRandom < 0.9) powerUpType = "weapon";
             else powerUpType = "bomb";
-          }
-
-          // Chance to spawn a token power-up if user has wallet connected
-          if (zora.isConnected && zora.initialized && Math.random() < config.tokenDropChance) {
-            powerUpType = "token";
           }
         }
 
@@ -2230,24 +1492,20 @@ function ensureViemLoaded() {
         }
       }
 
-      function gameLoop(currentTime) {
+      function gameLoop(timestamp) {
         if (game.state !== "playing") return;
 
-        const deltaTime = currentTime - game.lastUpdateTime;
-        game.lastUpdateTime = currentTime;
-
-        // Add passive score gain over time
-        game.score += 0.01 * game.wave;
-        updateScoreDisplay();
+        const deltaTime = timestamp - game.lastUpdateTime;
+        game.lastUpdateTime = timestamp;
 
         // Auto-shoot if there are enemies
         if (
           game.hasEnemies &&
-          currentTime - game.lastAutoShoot >
+          timestamp - game.lastAutoShoot >
             config.autoShootDelay / (game.player.weaponLevel === 3 ? 1.5 : game.player.weaponLevel === 2 ? 1.2 : 1)
         ) {
           createBullet();
-          game.lastAutoShoot = currentTime;
+          game.lastAutoShoot = timestamp;
         }
 
         // Update game elements
@@ -2265,17 +1523,10 @@ function ensureViemLoaded() {
           game.allEnemiesDefeated = true;
           showNotification("Area Cleared!");
 
-          // Add bonus score for clearing wave
+          // Add bonus score for clearing wave (reduced from 50 to 25 per wave)
           const waveClearBonus = game.wave * config.waveClearBonusMultiplier;
           game.score += waveClearBonus;
           createScorePopup(game.player.x, game.player.y - 40, `WAVE BONUS +${waveClearBonus}`);
-
-          // Award tokens for wave completion if connected to wallet
-          if (zora.isConnected && zora.initialized) {
-            const tokensEarned = config.waveBonus;
-            game.pendingTokens += tokensEarned;
-            createScorePopup(game.player.x, game.player.y - 60, `+${tokensEarned} TOKENS`);
-          }
 
           // Give player a short break before advancing
           setTimeout(() => {
@@ -2301,6 +1552,9 @@ function ensureViemLoaded() {
         if (Math.random() < config.powerUpChance / 100 && game.hasEnemies) {
           createPowerUp();
         }
+
+        // Update score display
+        updateScoreDisplay();
 
         // Request next frame
         game.animationFrameId = requestAnimationFrame(gameLoop);
@@ -2393,6 +1647,8 @@ function ensureViemLoaded() {
       }
 
       function updateBullets() {
+        const gameScreen = document.getElementById("game-screen");
+
         for (let i = game.bullets.length - 1; i >= 0; i--) {
           const bullet = game.bullets[i];
 
@@ -2453,20 +1709,12 @@ function ensureViemLoaded() {
       }
 
       function handleEnemyDefeat(enemy, index) {
-        // Get score based on enemy type
+        // Get score based on enemy type - now reduced values
         const scoreValue = config.scoreValues[enemy.type] || config.scoreValues.normalEnemy;
 
         // Update score and count
         game.score += scoreValue;
         game.enemiesDefeated++;
-
-        // Award tokens based on score if connected to wallet
-        if (zora.isConnected && zora.initialized) {
-          const tokensEarned = Math.floor(scoreValue / config.tokenEarnRate);
-          if (tokensEarned > 0) {
-            game.pendingTokens += tokensEarned;
-          }
-        }
 
         // Visual effects
         createExplosion(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2);
@@ -2476,7 +1724,7 @@ function ensureViemLoaded() {
         audio.play("hit");
         triggerHapticFeedback();
 
-        // Check for dropping power-ups
+        // Check for dropping power-ups - use combined probability
         const dropRoll = Math.random();
         const totalDropChance =
           config.healthDropChance +
@@ -2600,7 +1848,7 @@ function ensureViemLoaded() {
 
             // Visual and sound effects
             createExplosion(powerUp.x + powerUp.width / 2, powerUp.y + powerUp.height / 2, 20);
-            audio.play(powerUp.type === "token" ? "token" : "powerUp");
+            audio.play("powerUp");
             triggerHapticFeedback();
 
             // Remove power-up
@@ -2632,7 +1880,7 @@ function ensureViemLoaded() {
               createScorePopup(game.player.x, game.player.y - 20, "ALLY");
             } else {
               // If max allies reached, give score instead
-              game.score += 20;
+              game.score += 20; // Reduced from 30 to align with score rebalancing
               createScorePopup(game.player.x, game.player.y - 20, "+20 SCORE");
             }
             break;
@@ -2646,7 +1894,7 @@ function ensureViemLoaded() {
               audio.play("upgrade");
             } else {
               // Already max level, give score instead
-              game.score += 20;
+              game.score += 20; // Reduced from 50 to align with score rebalancing
               createScorePopup(game.player.x, game.player.y - 20, "+20 SCORE");
             }
             break;
@@ -2657,22 +1905,22 @@ function ensureViemLoaded() {
             updateBombDisplay();
             createScorePopup(game.player.x, game.player.y - 20, "BOMB");
             break;
-            
-          case "token":
-            // Add token (only if wallet connected)
-            if (zora.isConnected && zora.initialized) {
-              game.pendingTokens += 5;
-              createScorePopup(game.player.x, game.player.y - 20, "+5 TOKENS");
-            } else {
-              // If not connected, give score instead
-              game.score += 30;
-              createScorePopup(game.player.x, game.player.y - 20, "+30 SCORE");
-            }
-            break;
         }
 
         // Add score for collecting power-up
-        game.score += 5;
+        game.score += 5; // Reduced from 15 to align with score rebalancing
+      }
+
+      function activateShield() {
+        if (game.shieldTimer) clearTimeout(game.shieldTimer);
+
+        game.player.shielded = true;
+        document.getElementById("shield").style.display = "block";
+
+        game.shieldTimer = setTimeout(() => {
+          game.player.shielded = false;
+          document.getElementById("shield").style.display = "none";
+        }, config.shieldDuration);
       }
 
       function updateParticles() {
@@ -2847,10 +2095,6 @@ function ensureViemLoaded() {
         document.getElementById("wave-container").textContent = `WAVE: ${game.wave}`;
       }
 
-      function updateTokenDisplay() {
-        document.getElementById("token-container").textContent = `TOKENS: ${game.tokens}`;
-      }
-
       function checkCollision(obj1, obj2) {
         return (
           obj1.x < obj2.x + obj2.width &&
@@ -2864,29 +2108,14 @@ function ensureViemLoaded() {
         game.state = "gameOver";
         cancelAnimationFrame(game.animationFrameId);
 
+        // Stop background music
+        bgMusic.pause();
+
         // Display game over screen
         const gameOverScreen = document.getElementById("game-over-screen");
         document.getElementById("final-score").textContent = `FINAL SCORE: ${Math.floor(game.score)}`;
         document.getElementById("enemies-defeated").textContent = `ENEMIES DEFEATED: ${game.enemiesDefeated}`;
         document.getElementById("wave-reached").textContent = `WAVE REACHED: ${game.wave}`;
-        
-        // Show token earnings if wallet is connected
-        if (zora.isConnected && zora.initialized && game.pendingTokens > 0) {
-          document.getElementById("tokens-earned").textContent = `TOKENS EARNED: ${game.pendingTokens}`;
-          document.getElementById("tokens-earned").style.display = "block";
-          
-          // Show claim button if enough tokens to claim
-          if (game.pendingTokens >= config.minTokensToClaim) {
-            document.getElementById("claim-tokens").style.display = "block";
-          } else {
-            // Not enough tokens to claim
-            document.getElementById("claim-tokens").style.display = "none";
-          }
-        } else {
-          document.getElementById("tokens-earned").style.display = "none";
-          document.getElementById("claim-tokens").style.display = "none";
-        }
-        
         gameOverScreen.style.display = "flex";
 
         audio.play("gameOver");
@@ -2903,23 +2132,9 @@ function ensureViemLoaded() {
 
       function restartGame() {
         document.getElementById("game-over-screen").style.display = "none";
-        
-        // If player had pending tokens and didn't claim them,
-        // add them automatically to their game wallet
-        if (zora.isConnected && zora.initialized && game.pendingTokens > 0) {
-          game.tokens += game.pendingTokens;
-          game.pendingTokens = 0;
-          
-          // Show notification about tokens being added
-          setTimeout(() => {
-            showNotification("Tokens added to your game wallet!");
-          }, 1000);
-        }
-        
         startGame();
       }
 
-      // Initialize the game when DOM is loaded
       window.addEventListener("DOMContentLoaded", initGame);
     </script>
   </body>

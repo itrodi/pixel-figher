@@ -988,20 +988,19 @@
           statusDiv.textContent = "Initializing wallet...";
           
           // Get viem functions from the global object
-         const { createWalletClient, createPublicClient, http, parseEther, custom } = window.viem;
-          
-          zora.publicClient = createPublicClient({
-            chain: {
-              id: zora.chainConfig.id,
-              name: zora.chainConfig.name,
-              rpcUrls: {
-                default: { http: [zora.chainConfig.rpcUrl] },
-              },
-            },
-            transport: http(zora.chainConfig.rpcUrl),
-          });
-          
-         zora.walletClient = createWalletClient({
+        
+zora.publicClient = viem.createPublicClient({
+  chain: {
+    id: zora.chainConfig.id,
+    name: zora.chainConfig.name,
+    rpcUrls: {
+      default: { http: [zora.chainConfig.rpcUrl] },
+    },
+  },
+  transport: viem.http(zora.chainConfig.rpcUrl),
+});
+
+        zora.walletClient = viem.createWalletClient({
   account: zora.walletAddress,
   chain: {
     id: zora.chainConfig.id,
@@ -1010,7 +1009,7 @@
       default: { http: [zora.chainConfig.rpcUrl] },
     },
   },
-  transport: window.viem.custom(window.ethereum),
+  transport: viem.custom(window.ethereum),
 });
 
 
@@ -1168,7 +1167,7 @@
           document.getElementById("modal-actions").style.display = "none";
           
           // Get necessary functions from viem and the ZORA SDK
-          const { parseEther } = window.viem;
+          const { parseEther } = viem;
           
           // Create the coin params
           const coinParams = {

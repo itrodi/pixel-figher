@@ -988,7 +988,7 @@
           statusDiv.textContent = "Initializing wallet...";
           
           // Get viem functions from the global object
-          const { createWalletClient, createPublicClient, http, parseEther } = viem;
+         const { createWalletClient, createPublicClient, http, parseEther, custom } = window.viem;
           
           zora.publicClient = createPublicClient({
             chain: {
@@ -1001,17 +1001,18 @@
             transport: http(zora.chainConfig.rpcUrl),
           });
           
-          zora.walletClient = createWalletClient({
-            account: zora.walletAddress,
-            chain: {
-              id: zora.chainConfig.id,
-              name: zora.chainConfig.name,
-              rpcUrls: {
-                default: { http: [zora.chainConfig.rpcUrl] },
-              },
-            },
-            transport: custom(window.ethereum),
-          });
+         zora.walletClient = createWalletClient({
+  account: zora.walletAddress,
+  chain: {
+    id: zora.chainConfig.id,
+    name: zora.chainConfig.name,
+    rpcUrls: {
+      default: { http: [zora.chainConfig.rpcUrl] },
+    },
+  },
+  transport: window.viem.custom(window.ethereum),
+});
+
 
           // Setup complete
           zora.isConnected = true;
